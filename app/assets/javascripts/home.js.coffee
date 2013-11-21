@@ -8,6 +8,8 @@ class App
     @mapCenter = new google.maps.LatLng(-35.3183171, 149.1324608)
     @latField = $('#lat')
     @lonField = $('#lon')
+    @activities = []
+    @activityMarkers = []
     @map = new google.maps.Map @mapCanvas.get(0),
       center: @mapCenter
       zoom: 16
@@ -32,34 +34,44 @@ class App
 
     google.maps.event.addListener @marker, 'dragend', => @updateLatLon()
 
-    # @updateLatLon()
+    @updateLatLon()
 
   updateLatLon: ->
-    console.log 'Here'
     @latField.val @marker.getPosition().lat()
     @lonField.val @marker.getPosition().lng()
 
   addActvities: ->
     $.getJSON '/activities', (data) =>
       for activity, index in data
-        activityMarker = new google.maps.Marker
-          map: @map
-          animation: google.maps.Animation.DROP
-          position: new google.maps.LatLng(activity.lat, activity.lon)
+        do (index) =>
+          activityMarker =  new google.maps.Marker
+            map: @map
+            animation: google.maps.Animation.DROP
+            position: new google.maps.LatLng(activity.lat, activity.lon)
 
-        infoWindow = new google.maps.InfoWindow
-          content: """
-            <h3>#{activity.name}</h3>
-            <em>#{activity.created_at}</em>
-            <hr>
-            <p>#{activity.description}</p>
-          """
+          google.maps.event.addListener activityMarker, 'click', =>
+            @openWindow index
 
-        google.maps.event.addListener activityMarker, 'click', =>
-          infoWindow.open @map, activityMarker
+          @activityMarkers.push activityMarker
+          @activities.push activity
+
+  openWindow: (index) ->
+    @infoWindow.close() if @infoWindow?
+    console.log index
+    console.log @activities
+
+    @infoWindow = new google.maps.InfoWindow
+      content: """
+        <h3>#{@activities[index].name}</h3>
+        <em>#{@activities[index].created_at}</em>
+        <hr>
+        <p>#{@activities[index].description}</p>
+      """
+
+    @infoWindow.open @map, @activityMarkers[index]
 
 $ ->
-  app = new App
+  window.app = new App
 
   $('#locate-me').click ->
     app.setUserLocation()
